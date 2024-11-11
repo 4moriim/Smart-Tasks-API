@@ -114,6 +114,54 @@ app.put("/todos/:id", (request, response) => {
     });
 });
 
+// Endpoint para atualizar parcialmente uma tarefa
+app.patch("/todos/:id", (request, response) => {
+    const { id } = request.params;
+    const { title, is_completed } = request.body;
+
+    const updates = []; // Variável declarada vazia para alteração dinâmica
+    const values = []; // Variável declarada vazia para alteração dinâmica
+
+    //Se o "title" for alterado, é adicionado à atualização
+    if (title) {
+        updates.push('title = ?');
+        values.push(title);
+    }
+
+    //Se o "is_completed" for alterado, é adicionado à atualização
+    if (is_completed !== undefined) {
+        const completedValue = is_completed ? 1 : 0;
+        updates.push('is_completed = ?');
+        values.push(completedValue);
+    }
+
+    if (updates.length === 0) {
+        return response.json({ message: "Nenhum campo para atualizar" }); // Resposta acionada caso não tenha nada para atualizar
+    }
+
+    const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
+    values.push(id);
+
+    database.query(query, values, (error, result) => {
+        if (error) {
+            return response.json({ error: error.message });
+        }
+
+        // Se a tarefa foi atualizada
+        if (result.affectedRows > 0) {
+            response.json({
+                id,
+                title: title || undefined, // Retorna o novo título, caso tenha sido mudado
+                is_completed: is_completed // Retorna o status da tarefa (true ou false)
+            });
+        } else {
+            response.json({ message: "Tarefa não encontrada" });
+        }
+    });
+});
+
+
+
 // Endpoint para deletar uma tarefa
 app.delete("/todos/:id", (request, response) => {
     const { id } = request.params;
