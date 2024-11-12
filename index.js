@@ -81,7 +81,7 @@ app.post("/todos", (request, response) => {
         if (error) {
             return response.json({ error: error.message }); // Mensagem de erro
         }
-        res.json({
+        response.json({
             id: result.insertId, 
             title, 
             is_completed // Retorna como booleano (true ou false)
