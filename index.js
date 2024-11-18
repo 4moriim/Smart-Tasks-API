@@ -32,23 +32,23 @@ database.connect((error) => {
 function transformIsCompleted(results) {
     return results.map(task => ({
         ...task,
-        is_completed: task.is_completed === 1, 
+        is_completed: task.is_completed === 1,
     }));
 }
 
 // Endpoints
 app.get("/", (request, response) => {
-    response.send("Lista de tarefas home page");
+    response.status(200).send("Lista de tarefas home page");
 });
 
 // Endpoint para obter as tarefas do usuário
 app.get("/todos", (request, response) => {
     database.query('SELECT * FROM tasks', (error, results) => {
         if (error) {
-            return response.json({ error: error.message }); //Mensagem de erro
+            return response.status(500).json({ error: error.message }); //Mensagem de erro
         }
         const transformedResults = transformIsCompleted(results); // Aplica a transformação para booleano
-        response.json(transformedResults); // Retorna com valores booleanos
+        response.status(200).json(transformedResults); // Retorna com valores booleanos
     });
 });
 
@@ -57,13 +57,13 @@ app.get("/todos/:id", (request, response) => {
     const { id } = request.params;
     database.query('SELECT * FROM tasks WHERE id = ?', [id], (error, results) => {
         if (error) {
-            return response.json({ error: error.message }); // Mensagem de erro
+            return response.status(500).json({ error: error.message }); // Mensagem de erro
         }
         if (results.length > 0) {
             const transformedResult = transformIsCompleted(results); // Aplica a transformação para booleano
-            response.json(transformedResult[0]); // Retorna a tarefa transformada
+            response.status(200).json(transformedResult[0]); // Retorna a tarefa transformada
         } else {
-            response.json({ message: "Tarefa não encontrada" }); //Caso a tarefa não apareça
+            response.status(404).json({ message: "Tarefa não encontrada" }); //Caso a tarefa não apareça
         }
     });
 });
@@ -71,19 +71,19 @@ app.get("/todos/:id", (request, response) => {
 // Endpoint para adicionar uma nova tarefa
 app.post("/todos", (request, response) => {
     const { title, is_completed } = request.body;
-    
+
     // Garantir que is_completed seja um booleano (1 ou 0)
     const completedValue = is_completed ? 1 : 0;
-    
+
     const query = 'INSERT INTO tasks (title, is_completed) VALUES (?, ?)';
 
     database.query(query, [title, completedValue], (error, result) => {
         if (error) {
-            return response.json({ error: error.message }); // Mensagem de erro
+            return response.status(500).json({ error: error.message }); // Mensagem de erro
         }
-        response.json({
-            id: result.insertId, 
-            title, 
+        response.status(201).json({
+            id: result.insertId,
+            title,
             is_completed // Retorna como booleano (true ou false)
         });
     });
@@ -93,23 +93,23 @@ app.post("/todos", (request, response) => {
 app.put("/todos/:id", (request, response) => {
     const { id } = request.params;
     const { title, is_completed } = request.body;
-    
+
     const completedValue = is_completed ? 1 : 0;
 
     const query = 'UPDATE tasks SET title = ?, is_completed = ? WHERE id = ?';
 
     database.query(query, [title, completedValue, id], (error, result) => {
         if (error) {
-            return response.json({ error: error.message });
+            return response.status(500).json({ error: error.message });
         }
         if (result.affectedRows > 0) {
-            response.json({
-                id, 
-                title, 
+            response.status(200).json({
+                id,
+                title,
                 is_completed: is_completed // Retorna como booleano (true ou false)
             });
         } else {
-            response.json({ message: "Tarefa não encontrada" }); //Caso não seja encontrada a tarefa
+            response.status(404).json({ message: "Tarefa não encontrada" }); //Caso não seja encontrada a tarefa
         }
     });
 });
@@ -136,7 +136,7 @@ app.patch("/todos/:id", (request, response) => {
     }
 
     if (updates.length === 0) {
-        return response.json({ message: "Nenhum campo para atualizar" }); // Resposta acionada caso não tenha nada para atualizar
+        return response.status(400).json({ message: "Nenhum campo para atualizar" }); // Resposta acionada caso não tenha nada para atualizar
     }
 
     const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
@@ -144,23 +144,21 @@ app.patch("/todos/:id", (request, response) => {
 
     database.query(query, values, (error, result) => {
         if (error) {
-            return response.json({ error: error.message });
+            return response.status(500).json({ error: error.message });
         }
 
         // Se a tarefa foi atualizada
         if (result.affectedRows > 0) {
-            response.json({
+            response.status(200).json({
                 id,
                 title: title || undefined, // Retorna o novo título, caso tenha sido mudado
                 is_completed: is_completed // Retorna o status da tarefa (true ou false)
             });
         } else {
-            response.json({ message: "Tarefa não encontrada" });
+            response.status(404).json({ message: "Tarefa não encontrada" });
         }
     });
 });
-
-
 
 // Endpoint para deletar uma tarefa
 app.delete("/todos/:id", (request, response) => {
@@ -169,12 +167,12 @@ app.delete("/todos/:id", (request, response) => {
 
     database.query(query, [id], (error, result) => {
         if (error) {
-            return response.json({ error: error.message });
+            return response.status(500).json({ error: error.message });
         }
         if (result.affectedRows > 0) {
-            response.json({ message: "Tarefa deletada com sucesso" }); 
+            response.status(200).json({ message: "Tarefa deletada com sucesso" });
         } else {
-            response.json({ message: "Tarefa não encontrada" });
+            response.status(404).json({ message: "Tarefa não encontrada" });
         }
     });
 });
