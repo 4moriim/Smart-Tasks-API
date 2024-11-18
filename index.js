@@ -136,7 +136,7 @@ app.patch("/todos/:id", (request, response) => {
     }
 
     if (updates.length === 0) {
-        return response.status(400).json({ message: "Nenhum campo para atualizar" }); // Resposta acionada caso não tenha nada para atualizar
+        return response.status(200).json({ message: "Nenhum campo para atualizar" }); // Resposta acionada caso não tenha nada para atualizar
     }
 
     const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
