@@ -1,25 +1,32 @@
 const database = require("../config/db");
-const transformIsCompleted = require("../utils/transform");
 
 exports.home = (req, res) => {
     res.status(200).send("A API de Lista de tarefas está funcionando!");
 };
 
 exports.getAllTasks = (req, res) => {
-    database.query('SELECT * FROM tasks', (error, results) => {
+    const { status } = req.query;
+    let query = 'SELECT * FROM tasks';
+    const params = [];
+
+    if (status) {
+        query += ' WHERE status = ?';
+        params.push(status);
+    }
+
+    database.query(query, params, (error, results) => {
         if (error) return res.status(500).json({ error: error.message });
-        const transformedResults = transformIsCompleted(results);
-        res.status(200).json(transformedResults);
+        res.status(200).json(results);
     });
 };
 
 exports.getTaskById = (req, res) => {
     const { id } = req.params;
+    
     database.query('SELECT * FROM tasks WHERE id = ?', [id], (error, results) => {
         if (error) return res.status(500).json({ error: error.message });
         if (results.length > 0) {
-            const transformedResult = transformIsCompleted(results);
-            res.status(200).json(transformedResult[0]);
+            res.status(200).json(results);
         } else {
             res.status(404).json({ message: "Tarefa não encontrada" });
         }
@@ -51,7 +58,7 @@ exports.updateTask = (req, res) => {
 
 exports.partialUpdateTask = (req, res) => {
     const { id } = req.params;
-    const { title, description } = req.body;
+    const { title, description, status } = req.body;
 
     const updates = [];
     const values = [];
@@ -66,6 +73,11 @@ exports.partialUpdateTask = (req, res) => {
         values.push(description);
     }
 
+    if (status !== undefined) {
+        updates.push('status = ?');
+        values.push(status);
+    }
+
     if (updates.length === 0) {
         return res.status(200).json({ message: "Nenhum campo para atualizar" });
     }
@@ -76,7 +88,7 @@ exports.partialUpdateTask = (req, res) => {
     database.query(query, values, (error, result) => {
         if (error) return res.status(500).json({ error: error.message });
         if (result.affectedRows > 0) {
-            res.status(200).json({ id, title: title || undefined, description });
+            res.status(200).json({ id, title: title || undefined, description, status });
         } else {
             res.status(404).json({ message: "Tarefa não encontrada" });
         }
@@ -114,7 +126,7 @@ exports.updateTaskStatus = (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['active', 'completed', 'deleted'].includes(status)) {
+    if (!['pending', 'completed', 'deleted'].includes(status)) {
         return res.status(400).json({ error: "Status inválido" });
     }
 
